@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Kitchen Suspect 🍳</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ═══════════ HOME SCREEN ═══════════ -->
+<div id="screen-home" class="screen active">
+  <div class="home-hero">
+    <div class="logo">🍳</div>
+    <h1>Kitchen Suspect</h1>
+    <p class="tagline">Cook together. Trust no one.</p>
+  </div>
+  <div class="card">
+    <input type="text" id="home-name" placeholder="Your name (e.g. Chef Marco)" maxlength="20" />
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="createRoom()">🏠 Create Room</button>
+    </div>
+    <div class="divider">or join existing</div>
+    <div class="join-row">
+      <input type="text" id="home-code" placeholder="Room code" maxlength="4" style="text-transform:uppercase" />
+      <button class="btn btn-secondary" onclick="joinRoom()">Join</button>
+    </div>
+    <div id="home-error" class="error-msg hidden"></div>
+  </div>
+</div>
+
+<!-- ═══════════ LOBBY SCREEN ═══════════ -->
+<div id="screen-lobby" class="screen">
+  <div class="screen-header">
+    <div class="logo-sm">🍳</div>
+    <h2>Kitchen Suspect</h2>
+  </div>
+  <div class="card">
+    <div class="room-code-display">
+      Room Code: <span id="lobby-code" class="code-badge">----</span>
+      <button class="btn-copy" onclick="copyCode()" title="Copy code">📋</button>
+    </div>
+    <p class="subtitle">Share this code with 5 friends!</p>
+    <div id="lobby-players" class="player-grid"></div>
+    <div id="lobby-status" class="lobby-status">Waiting for players… (<span id="lobby-count">1</span>/6)</div>
+    <button id="lobby-start-btn" class="btn btn-primary btn-big hidden" onclick="startGame()">
+      🚀 Start Game!
+    </button>
+    <div id="lobby-error" class="error-msg hidden"></div>
+  </div>
+</div>
+
+<!-- ═══════════ ROLE REVEAL SCREEN ═══════════ -->
+<div id="screen-rolereveal" class="screen">
+  <div class="screen-header">
+    <div class="logo-sm">🍳</div>
+    <h2>Your Role</h2>
+  </div>
+  <div class="card role-card">
+    <div id="role-emoji" class="role-emoji">👨‍🍳</div>
+    <div id="role-title" class="role-title">Head Chef</div>
+    <div id="role-public-label" class="role-public-label"></div>
+    <div id="role-bonus" class="role-bonus"></div>
+    <div id="role-saboteur-hint" class="saboteur-hint hidden">
+      🎭 You are secretly the Saboteur! Your fake role is shown to others. Use your hidden abilities wisely!
+    </div>
+    <div id="role-ready-count" class="ready-count"></div>
+    <button class="btn btn-primary btn-big" onclick="confirmReady()">
+      I'm Ready! 👊
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════ MAIN GAME SCREEN ═══════════ -->
+<div id="screen-game" class="screen">
+
+  <!-- Top HUD -->
+  <div id="game-hud" class="game-hud">
+    <div class="hud-item">
+      <span class="hud-label">⏱️ Time</span>
+      <span id="hud-timer" class="hud-value timer-value">15:00</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">💰 Revenue</span>
+      <span id="hud-revenue" class="hud-value">$0</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">🎯 Target</span>
+      <span id="hud-target" class="hud-value">$800</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">😊 Satisfaction</span>
+      <span id="hud-satisfaction" class="hud-value">100</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">❌ Failed</span>
+      <span id="hud-failed" class="hud-value">0/8</span>
+    </div>
+  </div>
+
+  <div class="game-main">
+
+    <!-- Left: Orders -->
+    <div class="game-col game-col-orders">
+      <h3 class="col-title">📋 Active Orders</h3>
+      <div id="orders-list" class="orders-list"></div>
+    </div>
+
+    <!-- Right: Actions + Log + Players -->
+    <div class="game-col game-col-right">
+
+      <!-- My Status -->
+      <div id="my-status" class="my-status card-inner">
+        <span id="my-role-badge" class="my-role-badge">👨‍🍳 Head Chef</span>
+        <span id="my-busy-label" class="busy-label hidden">⏳ Busy…</span>
+      </div>
+      <div id="busy-bar-wrap" class="busy-bar-wrap hidden">
+        <div id="busy-bar" class="busy-bar"></div>
+      </div>
+
+      <!-- General Actions -->
+      <div class="card-inner actions-panel">
+        <h4 class="panel-title">General Actions</h4>
+        <div class="action-btn-row">
+          <button class="btn btn-action" onclick="doClean()">🧹 Clean</button>
+          <button id="btn-boost" class="btn btn-action btn-manager hidden" onclick="doManagerBoost()">⚡ Team Boost</button>
+          <button id="btn-vote" class="btn btn-action btn-vote" onclick="callVote()">🗳️ Call Vote</button>
+        </div>
+        <div id="action-error" class="error-msg hidden"></div>
+      </div>
+
+      <!-- Sabotage Panel (saboteur only) -->
+      <div id="sabotage-panel" class="card-inner sabotage-panel hidden">
+        <h4 class="panel-title">🔴 Sabotage</h4>
+        <div id="sabotage-btns" class="sabotage-btn-grid"></div>
+      </div>
+
+      <!-- Players -->
+      <div class="card-inner">
+        <h4 class="panel-title">👥 Players</h4>
+        <div id="game-players" class="game-player-list"></div>
+      </div>
+
+      <!-- Event Log -->
+      <div class="card-inner">
+        <h4 class="panel-title">📜 Event Log</h4>
+        <div id="event-log" class="event-log"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ VOTE MODAL ═══════════ -->
+<div id="vote-modal" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h3>🗳️ Vote to Eject</h3>
+    <p id="vote-caller-text"></p>
+    <p class="vote-hint">Who do you suspect is the saboteur?</p>
+    <div id="vote-options" class="vote-options"></div>
+    <div id="vote-status-text" class="vote-status-text"></div>
+    <div id="vote-timer-display" class="vote-timer-display"></div>
+  </div>
+</div>
+
+<!-- ═══════════ EJECT NOTIFICATION ═══════════ -->
+<div id="eject-notice" class="modal-overlay hidden">
+  <div class="modal-card eject-card">
+    <div id="eject-emoji" class="eject-emoji">😮</div>
+    <h3 id="eject-title"></h3>
+    <p id="eject-body"></p>
+    <button class="btn btn-primary" onclick="closeEjectNotice()">Continue</button>
+  </div>
+</div>
+
+<!-- ═══════════ END SCREEN ═══════════ -->
+<div id="screen-end" class="screen">
+  <div class="screen-header">
+    <div class="logo-sm">🍳</div>
+    <h2>Game Over</h2>
+  </div>
+  <div class="card end-card">
+    <div id="end-result-emoji" class="end-emoji">🏆</div>
+    <h2 id="end-result-title"></h2>
+    <p id="end-result-reason" class="end-reason"></p>
+    <div class="end-stats">
+      <div class="stat-row"><span>The Saboteur was:</span><strong id="end-saboteur"></strong></div>
+      <div class="stat-row"><span>Revenue Earned:</span><strong id="end-revenue"></strong></div>
+      <div class="stat-row"><span>Target:</span><strong id="end-target"></strong></div>
+      <div class="stat-row"><span>Failed Orders:</span><strong id="end-failed"></strong></div>
+    </div>
+    <div id="end-players" class="end-players"></div>
+    <button class="btn btn-primary btn-big" onclick="returnToLobby()">🔄 Play Again</button>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
